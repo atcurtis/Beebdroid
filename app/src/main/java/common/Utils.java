@@ -4,31 +4,28 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
+import java.io.Reader;
+import java.net.HttpURLConnection;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import junit.framework.Assert;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.Activity;
 import android.app.Dialog;
 import android.graphics.Typeface;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -90,29 +87,22 @@ public class Utils {
 	}
 
 
-	public static String getHttpResponseText(HttpResponse response) throws IOException {
-		HttpEntity entity = response.getEntity();
-		if (entity == null) {
-			return "";
+	public static String getHttpResponseText(HttpURLConnection response) throws IOException {
+		StringBuilder builder = new StringBuilder();
+		try (Reader reader = new InputStreamReader(response.getInputStream(), StandardCharsets.UTF_8)) {
+			char[] chars = new char[2048];
+			int readChars;
+			while ((readChars = reader.read(chars)) != -1) {
+				builder.append(chars, 0, readChars);
+			}
 		}
-		byte[] sBuffer = new byte[4096];
-		InputStream inputStream = entity.getContent();
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream(4096);
-	    int readBytes = 0;
-	    int totalBytesRead = 0;
-	    while ((readBytes = inputStream.read(sBuffer)) != -1) {
-	    	outputStream.write(sBuffer, 0, readBytes);
-	    	totalBytesRead += readBytes;
-	    }
-	    entity.consumeContent();
-	    return new String(outputStream.toByteArray());
+		return builder.toString();
 	}
 
 	public static String readTextStreamAvailable(InputStream inputStream) throws IOException {
 		byte[] buffer = new byte[4096];
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream(4096);
 		
-		// Do the first byte via a blocking read
 		outputStream.write(inputStream.read());
 		
 		// Slurp the rest

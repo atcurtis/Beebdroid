@@ -1,41 +1,60 @@
-import org.apache.tools.ant.taskdefs.condition.Os
+//import org.apache.tools.ant.taskdefs.condition.Os
 
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion '23.0'
+    compileSdkVersion 25
+    buildToolsVersion "25.0.1"
     defaultConfig {
         applicationId "com.littlefluffytoys.beebdroid"
-        targetSdkVersion 23
-        minSdkVersion 13
-    }
-    useLibrary 'org.apache.http.legacy'
-    sourceSets.main {
-        jniLibs.srcDir 'src/main/libs' //set .so files location to libs instead of jniLibs
-        jni.srcDirs = [] //disable automatic ndk-build call
-    }
-    // add a task that calls regular ndk-build(.cmd) script from app directory
-    task ndkBuild(type: Exec) {
-        if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-            commandLine 'ndk-build.cmd', '-C', file('src/main').absolutePath
-        } else {
-            commandLine '/Users/reuben/android/sdk/ndk-bundle/ndk-build', '-C', file('src/main').absolutePath
+        versionCode 1
+        versionName "1.0"
+        targetSdkVersion 25
+        minSdkVersion 23
+        externalNativeBuild {
+            ndkBuild {
+
+            }
+        }
+        ndk {
+            //abiFilters 'x86', 'armeabi-v7a'
+            abiFilters 'armeabi-v7a'
         }
     }
+    //useLibrary 'org.apache.http.legacy'
+    //sourceSets.main {
+    //    jniLibs.srcDir 'src/main/libs' //set .so files location to libs instead of jniLibs
+    //    jni.srcDirs = [] //disable automatic ndk-build call
+    //}
+    // add a task that calls regular ndk-build(.cmd) script from app directory
+    //task ndkBuild(type: Exec) {
+    //    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+    //        commandLine 'ndk-build.cmd', '-C', file('src/main').absolutePath
+    //    } else {
+    //        commandLine '/Users/reuben/android/sdk/ndk-bundle/ndk-build', '-C', file('src/main').absolutePath
+    //    }
+    //}
     // add this task as a dependency of Java compilation
-    tasks.withType(JavaCompile) {
-        compileTask -> compileTask.dependsOn ndkBuild
-    }
+    //tasks.withType(JavaCompile) {
+    //    compileTask -> compileTask.dependsOn ndkBuild
+    //}
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
     }
+    externalNativeBuild {
+        ndkBuild {
+            path file('src/main/jni/Android.mk').absolutePath
+        }
+    }
+    // Specifies one flavor dimension.
+    flavorDimensions "version"
     productFlavors {
         ouya {
-            minSdkVersion 14
+            dimension "version"
+            minSdkVersion 23
             dependencies {
                 compile 'ouya:ouya-sdk:+' // You can replace "+" with a specific version number
             }
@@ -44,11 +63,11 @@ android {
 }
 
 dependencies {
-    compile 'com.android.support:appcompat-v7:23.0.1'
-    compile 'com.android.support:recyclerview-v7:23.0.1'
-    compile 'com.android.support:support-annotations:23.0.1'
-    compile 'com.android.support:support-v13:23.0.1'
-    compile 'com.android.support:support-v4:23.0.1'
+    compile 'com.android.support:appcompat-v7:25.0.1'
+    compile 'com.android.support:recyclerview-v7:25.0.1'
+    compile 'com.android.support:support-annotations:25.0.1'
+    compile 'com.android.support:support-v13:25.0.1'
+    compile 'com.android.support:support-v4:25.0.1'
 }
 
 repositories {

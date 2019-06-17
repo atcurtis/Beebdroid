@@ -4,20 +4,16 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
+import java.net.HttpURLConnection;
 import java.net.UnknownHostException;
 
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
 import android.os.AsyncTask;
+import android.preference.PreferenceActivity;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -34,12 +30,18 @@ public class Network {
 		protected int httpCode;
 		
 		// Functions to be implemented by derived classes
-		abstract protected HttpUriRequest getHttpRequest();
+		abstract protected HttpURLConnection getHttpRequest() throws IOException;
 		abstract protected void onError(String errorText);
 		
-		protected boolean processStatusLine(HttpResponse response) {
-			httpCode = response.getStatusLine().getStatusCode();
-			Log.d(TAG, "got HTTP " + httpCode);
+		protected boolean processStatusLine(HttpURLConnection response) {
+			try {
+				httpCode = response.getResponseCode();
+				Log.d(TAG, "got HTTP " + httpCode);
+			} catch (IOException e) {
+				errorMessage = e.getMessage();
+				httpCode = 500;
+				Log.e(TAG, "Exception", e);
+			}
 			if (httpCode != 200 && httpCode !=206) {
 				if (httpCode == 403) {
 					errorMessage = "Access Denied"; // urgh! can we be less forbidding?
@@ -67,19 +69,17 @@ public class Network {
 
 		@Override
 		protected String doInBackground(String... params) {				
-			HttpClient client = new DefaultHttpClient();
-			HttpUriRequest request = getHttpRequest();
-			Log.d(TAG, request.getRequestLine().toString());
 			try {
-				HttpResponse response = client.execute(request);
-				if (!processStatusLine(response)) {
+				HttpURLConnection request = getHttpRequest();
+				Log.d(TAG, request.getURL().toString());
+				if (!processStatusLine(request)) {
 					return null;
 				}
-				responseETag = "";
-				if (response.containsHeader("ETag")) {
-					responseETag = response.getFirstHeader("ETag").getValue();
+				responseETag = request.getHeaderField("ETag");
+				if (responseETag == null) {
+					responseETag = "";
 				}
-				String rv = Utils.getHttpResponseText(response);
+				String rv = Utils.getHttpResponseText(request);
 				Log.d("DownloadTextTask", "Response text is:\n" + rv);
 				return rv;
 			}
@@ -159,52 +159,48 @@ public class Network {
 		
 		@Override
 		protected String doInBackground(String... params) {
-			HttpClient client = new DefaultHttpClient();
 			File outputFile=new File(localPath);
-			HttpUriRequest request = getHttpRequest();
-			long cbDownloaded = 0;
-			if (outputFile.exists()) {
-				if (!append) {
-					outputFile.delete();
-				}
-				else {
-					cbDownloaded = outputFile.length();
-					Log.d(TAG, "Adding header: Range: " + cbDownloaded + "-");
-					request.addHeader("Range", "bytes=" + Long.toString(cbDownloaded) + "-");
-				}
-			}
 			try {
-				HttpResponse response = client.execute(request);
-				if (!processStatusLine(response)) {
+				HttpURLConnection request = getHttpRequest();
+				long cbDownloaded = 0;
+				if (outputFile.exists()) {
+					if (!append) {
+						outputFile.delete();
+					}
+					else {
+						cbDownloaded = outputFile.length();
+						Log.d(TAG, "Adding header: Range: " + cbDownloaded + "-");
+						request.addRequestProperty("Range", "bytes=" + cbDownloaded + "-");
+					}
+				}
+				request.connect();
+				if (!processStatusLine(request)) {
 					return null;
 				}
-				HttpEntity entity = response.getEntity();
 				contentType = "";
-				Header hdrContentType = response.getFirstHeader("Content-Type");
+				String hdrContentType = request.getContentType();
 				if (hdrContentType != null) {
-					contentType = hdrContentType.getValue();
+					contentType = hdrContentType;
 				}
-				if (entity != null) {
+				try (InputStream inputStream = request.getInputStream()) {
 					byte[] sBuffer = new byte[16384];
-					InputStream inputStream = entity.getContent();
-					long cbThisDownloadSize  = entity.getContentLength();
+					long cbThisDownloadSize  = request.getContentLength();
 					cbTotalSize = cbDownloaded + cbThisDownloadSize;
 					Log.d(TAG, "cbTotalSize is " + cbTotalSize);
-			    	RandomAccessFile output = new RandomAccessFile(localPath, "rw");
-			    	if (cbDownloaded > 0) {
-			    		output.seek(cbDownloaded);
-			    	}
-				    int readBytes = 0;
-				    while ((readBytes = inputStream.read(sBuffer)) != -1) {
-				    	output.write(sBuffer, 0, readBytes);
-				    	cbDownloaded += readBytes;
-				    	publishProgress(cbDownloaded, cbTotalSize);
-				    	if (isCancelled()) {
-				    		break;
-				    	}
-				    }
-				    output.close();
-				    entity.consumeContent();
+			    	try (RandomAccessFile output = new RandomAccessFile(localPath, "rw")) {
+						if (cbDownloaded > 0) {
+							output.seek(cbDownloaded);
+						}
+						int readBytes = 0;
+						while ((readBytes = inputStream.read(sBuffer)) != -1) {
+							output.write(sBuffer, 0, readBytes);
+							cbDownloaded += readBytes;
+							publishProgress(cbDownloaded, cbTotalSize);
+							if (isCancelled()) {
+								break;
+							}
+						}
+					}
 				    return "OK"; // success
 				}
 			}

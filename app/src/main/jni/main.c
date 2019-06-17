@@ -308,7 +308,7 @@ JNIEXPORT jint JNICALL Java_com_littlefluffytoys_beebdroid_Beebdroid_bbcGetThumb
 
     if ((ret = AndroidBitmap_getInfo(env, jbitmap, &info)) < 0) {
         LOGE("AndroidBitmap_getInfo() failed ! error=%d", ret);
-        return;
+        return 0;
     }
 
 

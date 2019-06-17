@@ -3,11 +3,11 @@ package com.littlefluffytoys.beebdroid;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpUriRequest;
 import org.json.JSONArray;
 import org.json.JSONException;
 
@@ -136,8 +136,9 @@ public class LoadDisk extends AppCompatActivity implements FilePickerFragment.On
         private void refreshOnlineList() {
             downloadTask = new Network.DownloadJsonTask() {
                 @Override
-                protected HttpUriRequest getHttpRequest() {
-                    return new HttpGet(SERVER_ROOT + "beebdroid.json");
+                protected HttpURLConnection getHttpRequest() throws IOException {
+                    URL url = new URL(SERVER_ROOT + "beebdroid.json");
+                    return (HttpURLConnection) url.openConnection();
                 }
 
                 @Override
@@ -184,8 +185,9 @@ public class LoadDisk extends AppCompatActivity implements FilePickerFragment.On
             final File tmpFile = new File(dir, "tmp.bin");
             Network.DownloadBinaryTask task = new Network.DownloadBinaryTask(tmpFile.getAbsolutePath(), false) {
                 @Override
-                protected HttpUriRequest getHttpRequest() {
-                    return new HttpGet(onlineDiskInfo.diskUrl);
+                protected HttpURLConnection getHttpRequest() throws IOException {
+                    URL url = new URL(onlineDiskInfo.diskUrl);
+                    return (HttpURLConnection) url.openConnection();
                 }
 
                 @Override

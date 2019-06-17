@@ -26,71 +26,71 @@
 
 // branch without labels: count number of lines to skip over, add 1, multiply by 4. So to skip 2 lines, "b .+12"
 .macro PUSHWORD reg16, scrapreg
-	add \scrapreg, %r5, #0x100  	@ scrapreg = mem+0x100, i.e. bottom of stack space
-	sub %r10, %r10, #1
-	and %r10, %r10, #255
-	strh \reg16, [\scrapreg, %r10]
-	sub %r10, %r10, #1
-	and %r10, %r10, #255
+	add \scrapreg, r5, #0x100  	@ scrapreg = mem+0x100, i.e. bottom of stack space
+	sub r10, r10, #1
+	and r10, r10, #255
+	strh \reg16, [\scrapreg, r10]
+	sub r10, r10, #1
+	and r10, r10, #255
 .endm
 .macro PULLWORD reg16
-	add %r2, %r5, #0x100  	@ scrapreg = mem+0x100, i.e. bottom of stack space
-	add %r10, %r10, #1
-	and %r10, %r10, #255
-	ldrh \reg16, [%r2, %r10]
-	add %r10, %r10, #1
-	and %r10, %r10, #255
+	add r2, r5, #0x100  	@ scrapreg = mem+0x100, i.e. bottom of stack space
+	add r10, r10, #1
+	and r10, r10, #255
+	ldrh \reg16, [r2, r10]
+	add r10, r10, #1
+	and r10, r10, #255
 .endm
 
 .macro UPDATE_TAKEINT 	@ cpu->takeint=(cpu->interrupt && !(cpu->p & FLAG_I));
-	mov  %r1, #0
-	ldr  %r2, [%r4, #12]	@r12 = cpu->interrupt
-	cmp  %r2, #0
+	mov  r1, #0
+	ldr  r2, [r4, #12]	@r12 = cpu->interrupt
+	cmp  r2, #0
 	beq  .+12
-	tstne  %r11, #4  		@ test the FLAG_I
-	moveq %r1, #1
-	str %r1, [%r4, #20]   	@cpu->take_int = r1
+	tstne  r11, #4  		@ test the FLAG_I
+	moveq r1, #1
+	str r1, [r4, #20]   	@cpu->take_int = r1
 .endm
 
 .macro LOG_CPU
 	push {lr}
-    strh %r6, [%r4, #4] 	@  r6 = PC
-    strb %r7, [%r4, #6] 	@  r7 = A
-    strb %r8, [%r4, #7] 	@  r8 = X
-    strb %r9, [%r4, #8] 	@  r9 = Y
-    strb %r10,[%r4, #9] 	@ r10 = S
-    strb %r11,[%r4, #10] 	@ r11 = P
-	mov  %r0, %r4
+    strh r6, [r4, #4] 	@  r6 = PC
+    strb r7, [r4, #6] 	@  r7 = A
+    strb r8, [r4, #7] 	@  r8 = X
+    strb r9, [r4, #8] 	@  r9 = Y
+    strb r10,[r4, #9] 	@ r10 = S
+    strb r11,[r4, #10] 	@ r11 = P
+	mov  r0, r4
 	bl log_cpu
-    ldrh %r6, [%r4, #4] 	@  r6 = PC
-    ldrb %r7, [%r4, #6] 	@  r7 = A
-    ldrb %r8, [%r4, #7] 	@  r8 = X
-    ldrb %r9, [%r4, #8] 	@  r9 = Y
-    ldrb %r10,[%r4, #9] 	@ r10 = S
-    ldrb %r11,[%r4, #10] 	@ r11 = P
+    ldrh r6, [r4, #4] 	@  r6 = PC
+    ldrb r7, [r4, #6] 	@  r7 = A
+    ldrb r8, [r4, #7] 	@  r8 = X
+    ldrb r9, [r4, #8] 	@  r9 = Y
+    ldrb r10,[r4, #9] 	@ r10 = S
+    ldrb r11,[r4, #10] 	@ r11 = P
     pop {lr}
 .endm
 
 exec6502:
-	push {%r4-%r12,lr}
+	push {r4-r12,lr}
 
 	@ Keep CPU* in safe register
-	ldr  %r4, =acpu
+	ldr  r4, =acpu
 
     @ update cpu->cycles. Note the constant value 40000 cannot be encoded and has to be ldr'd indirectly.
-    ldr  %r0,[%r4, #24]
-    ldr  %r1, =40000
-    add  %r0, %r0, %r1
-    str  %r0,[%r4, #24]
+    ldr  r0,[r4, #24]
+    ldr  r1, =40000
+    add  r0, r0, r1
+    str  r0,[r4, #24]
 
     @ load 6502 CPU state into ARM registers
-    ldr  %r5, [%r4] 		@ r5  = mem
-    ldrh %r6, [%r4, #4] 	@ r6  = PC
-    ldrb %r7, [%r4, #6] 	@ r7  = A
-    ldrb %r8, [%r4, #7] 	@ r8  = X
-    ldrb %r9, [%r4, #8] 	@ r9  = Y
-    ldrb %r10,[%r4, #9] 	@ r10 = S
-    ldrb %r11,[%r4, #10] 	@ r11 = P
+    ldr  r5, [r4] 		@ r5  = mem
+    ldrh r6, [r4, #4] 	@ r6  = PC
+    ldrb r7, [r4, #6] 	@ r7  = A
+    ldrb r8, [r4, #7] 	@ r8  = X
+    ldrb r9, [r4, #8] 	@ r9  = Y
+    ldrb r10,[r4, #9] 	@ r10 = S
+    ldrb r11,[r4, #10] 	@ r11 = P
 
     @loop
 loop:
@@ -102,18 +102,18 @@ loop:
 	//bl chk_triggers
 
 	@ PC triggers - if PC hits a known preset, update CPU state with it so Java layer can act appropriately
-	mov %r1, #1
-	ldrh %r0,[%r4, #30]
-	cmp %r0, %r6
-	streqh %r1,[%r4, #28]
-	mov %r1, #2
-	ldrh %r0,[%r4, #32]
-	cmp %r0, %r6
-	streqh %r1,[%r4, #28]
+	mov r1, #1
+	ldrh r0,[r4, #30]
+	cmp r0, r6
+	streq.w r1,[r4, #28] @streqh
+	mov r1, #2
+	ldrh r0,[r4, #32]
+	cmp r0, r6
+	streq.w r1,[r4, #28] @streqh
 
 	@ Get the opcode into r0 and update cpu->PC
-	ldrb %r0,[%r5,%r6]
-	add  %r6, %r6, #1
+	ldrb r0,[r5,r6]
+	add  r6, r6, #1
 
 	/*cmp %r0, #0x68
 	blt .+12
@@ -124,82 +124,82 @@ loop:
 
 //*/
 	@ Get the ASM function. If this doesnt exist, fall back to C version.
-	ldr  %r1, =fns_asm
-	ldr  %r2, [%r1, %r0, lsl #2]
-	cmp  %r2, #0
+	ldr  r1, =fns_asm
+	ldr  r2, [r1, r0, lsl #2]
+	cmp  r2, #0
 	beq  use_c_fn
 
 	@ Call assembly function
-	blx %r2
+	blx r2
 	b done_call
 
 	@ Get the C function pointer and call it, updating and restoring the in-memory 6502 state before and after the call.
 use_c_fn:
-	ldr  %r1, =fns
-	ldr  %r2, [%r1, %r0, lsl #2]
-    strh %r6, [%r4, #4] 	@  r6 = PC
-    strb %r7, [%r4, #6] 	@  r7 = A
-    strb %r8, [%r4, #7] 	@  r8 = X
-    strb %r9, [%r4, #8] 	@  r9 = Y
-    strb %r10,[%r4, #9] 	@ r10 = S
-    strb %r11,[%r4, #10] 	@ r11 = P
-	mov  %r0, %r4  	@ Sole parameter for C opcode functions is r0 = CPU*
-	blx %r2
-    ldrh %r6, [%r4, #4] 	@  r6 = PC
-    ldrb %r7, [%r4, #6] 	@  r7 = A
-    ldrb %r8, [%r4, #7] 	@  r8 = X
-    ldrb %r9, [%r4, #8] 	@  r9 = Y
-    ldrb %r10,[%r4, #9] 	@ r10 = S
-    ldrb %r11,[%r4, #10] 	@ r11 = P
+	ldr  r1, =fns
+	ldr  r2, [r1, r0, lsl #2]
+    strh r6, [r4, #4] 	@  r6 = PC
+    strb r7, [r4, #6] 	@  r7 = A
+    strb r8, [r4, #7] 	@  r8 = X
+    strb r9, [r4, #8] 	@  r9 = Y
+    strb r10,[r4, #9] 	@ r10 = S
+    strb r11,[r4, #10] 	@ r11 = P
+	mov  r0, r4  	@ Sole parameter for C opcode functions is r0 = CPU*
+	blx r2
+    ldrh r6, [r4, #4] 	@  r6 = PC
+    ldrb r7, [r4, #6] 	@  r7 = A
+    ldrb r8, [r4, #7] 	@  r8 = X
+    ldrb r9, [r4, #8] 	@  r9 = Y
+    ldrb r10,[r4, #9] 	@ r10 = S
+    ldrb r11,[r4, #10] 	@ r11 = P
 
 done_call:
-	tst  %r0, #0x80000000
+	tst  r0, #0x80000000
 	bne  already_updated_interrupts
 	@ cpu->takeint=(cpu->interrupt && !(cpu->p & FLAG_I));
 	UPDATE_TAKEINT
 	b done_interrupts
 already_updated_interrupts:
-	mvn  %r0, %r0
-	add  %r0, %r0, #1
+	mvn  r0, r0
+	add  r0, r0, #1
 done_interrupts:
 
 	@ Update interrupts
-	ldr %r1, [%r4, #16]  @ r1 = cpu->nmi
-	cmp %r1, #0
+	ldr r1, [r4, #16]  @ r1 = cpu->nmi
+	cmp r1, #0
 	beq no_nmi
-	mov %r1, #0
-	str %r1, [%r4, #16]  @ cpu->nmi = 0
-	ldr %r3, =0xfffa
+	mov r1, #0
+	str r1, [r4, #16]  @ cpu->nmi = 0
+	ldr r3, =0xfffa
 	b do_interrupt
 no_nmi:
-	ldr %r1, [%r4, #20]  @ r1 = cpu->take_int
-	cmp %r1, #0
+	ldr r1, [r4, #20]  @ r1 = cpu->take_int
+	cmp r1, #0
 	beq no_interrupt
-	mov %r1, #0
-	str %r1, [%r4, #20]  @ cpu->take_int = 0
-	ldr %r3, =0xfffe
+	mov r1, #0
+	str r1, [r4, #20]  @ cpu->take_int = 0
+	ldr r3, =0xfffe
 do_interrupt:
-	PUSHWORD %r6, %r2			@ push(cpu->pc)
-	orr %r1,  %r11, #0x20   	@ uint8_t temp = cpu->p | 0x20;
-	strb %r1, [%r2, %r10] 		@ push(temp);
-	sub %r10, %r10, #1
-	and %r10, %r10, #255
-	ldrh %r6, [%r5, %r3] 		@ cpu->pc=*(uint16_t*)&(cpu->mem[0xfffe]);
-	orr %r11, #4 			 	@ cpu->p |= FLAG_I;
-	strh %r6, [%r4, #4]			@ Remove when C-only
-	strb %r10, [%r4, #9]    	@ Remove when C-only
-	strb %r11, [%r4, #10]		@ Remove when C-only
-	add %r0, %r0, #7		@	 c += 7;
+	PUSHWORD r6, r2			@ push(cpu->pc)
+	orr r1,  r11, #0x20   	@ uint8_t temp = cpu->p | 0x20;
+	strb r1, [r2, r10] 		@ push(temp);
+	sub r10, r10, #1
+	and r10, r10, #255
+	ldrh r6, [r5, r3] 		@ cpu->pc=*(uint16_t*)&(cpu->mem[0xfffe]);
+	orr r11, #4 			 	@ cpu->p |= FLAG_I;
+	strh r6, [r4, #4]			@ Remove when C-only
+	strb r10, [r4, #9]    	@ Remove when C-only
+	strb r11, [r4, #10]		@ Remove when C-only
+	add r0, r0, #7		@	 c += 7;
 no_interrupt:
-	ldr %r1, [%r4, #12]  @ r1 = cpu->interrupt
-	bic %r1, #128
-	str %r1, [%r4, #12]
+	ldr r1, [r4, #12]  @ r1 = cpu->interrupt
+	bic r1, #128
+	str r1, [r4, #12]
 
 	@ Update CPU->cycles
-	mov %r1, %r0
-	ldr  %r0,[%r4, #24]
-	subs  %r0, %r1
-	str  %r0,[%r4, #24]
+	mov r1, r0
+	ldr  r0,[r4, #24]
+	subs  r0, r1
+	str  r0,[r4, #24]
 	//bcs do_poll_now
 
 	@ Update intermediate cycle counter
@@ -211,23 +211,23 @@ no_interrupt:
 	sub %r0, #32
 	str  %r0,[%r4, #38]
 do_poll_now:*/
-	mov %r0, %r4
+	mov r0, r4
  	bl do_poll
 no_poll_yet:
 
 	@ Loop back until cpu->cycles <=0
-    ldr  %r0,[%r4, #24]
-	cmp  %r0, #0
+    ldr  r0,[r4, #24]
+	cmp  r0, #0
 	bgt loop
 
 	@ Update cpu fields, restore regs and exit
-    strh %r6, [%r4, #4] 	@  r6 = PC
-    strb %r7, [%r4, #6] 	@  r7 = A
-    strb %r8, [%r4, #7] 	@  r8 = X
-    strb %r9, [%r4, #8] 	@  r9 = Y
-    strb %r10,[%r4, #9] 	@ r10 = S
-    strb %r11,[%r4, #10] 	@ r11 = P
-	pop {%r4-%r12,lr}
+    strh r6, [r4, #4] 	@  r6 = PC
+    strb r7, [r4, #6] 	@  r7 = A
+    strb r8, [r4, #7] 	@  r8 = X
+    strb r9, [r4, #8] 	@  r9 = Y
+    strb r10,[r4, #9] 	@ r10 = S
+    strb r11,[r4, #10] 	@ r11 = P
+	pop {r4-r12,lr}
     bx   lr
 
 
@@ -238,182 +238,178 @@ no_poll_yet:
 
 //#define readmem(x)  ((x<0xfe00) ? cpu->mem[x] : readmem_ex(x))
 .macro READBYTED a, b
-	ldrb \a, [%r5, \b]
+	ldrb \a, [r5, \b]
 .endm
 .macro READBYTE a, b
 	cmp \b, #0xfe00
 	bge .+12
-	ldrb \a, [%r5, \b]
+	ldrb \a, [r5, \b]
 	b .+24
-	mov %r0, \b
+	mov r0, \b
 	push {lr}
 	bl readmem_ex
 	pop {lr}
-	movs \a, %r0
+	movs \a, r0
 .endm
 .macro READSIGNEDBYTE a, b
 	cmp \b, #0xfe00
 	bge .+12
-	ldrsb \a, [%r5, \b]
+	ldrsb \a, [r5, \b]
 	b .+24
-	mov %r0, \b
+	mov r0, \b
 	push {lr}
 	bl readmem_ex
 	pop {lr}
-	movs \a, %r0
+	movs \a, r0
 .endm
 .macro READBYTE_PC a
-	READBYTE \a, %r6
-	add %r6, %r6, #1
+	READBYTE \a, r6
+	add r6, r6, #1
 .endm
 .macro WRITEBYTED val, addr
-	strb \val, [%r5, \addr]
+	strb \val, [r5, \addr]
 .endm
 .macro WRITEBYTE val, addr
 	cmp \addr, #0x8000
 	bge .+12
-	strb \val, [%r5, \addr]
+	strb \val, [r5, \addr]
 	b .+24
-	mov %r0, \addr
-	mov %r1, \val
+	mov r0, \addr
+	mov r1, \val
 	push {lr}
 	bl writemem_ex
 	pop {lr}
 .endm
 .macro RETURN clocks
-	mov %r0, \clocks
+	mov r0, \clocks
 	bx lr
 .endm
 //#define readword(x) ((x<0xfe00) ? (*((uint16_t*)&(cpu->mem[x]))) : (readmem_ex(x) | (readmem_ex(x+1)<<8)))
 .macro READWORD dst, src
 	cmp \src, #0xfe00
 	bge .+12
-	ldrh \dst, [%r5, \src]
+	ldrh \dst, [r5, \src]
 	b .+24
-	mov %r0, \src
+	mov r0, \src
 	push {lr}
 	bl readword_ex
 	pop {lr}
-	movs \dst, %r0
+	movs \dst, r0
 .endm
 .macro READWORD_PC a
-	READWORD \a, %r6
-	add %r6, %r6, #2
+	READWORD \a, r6
+	add r6, r6, #2
 .endm
 
 // #define setzn(v) if(v) cpu->p &=~FLAG_Z; else cpu->p|=FLAG_Z;  if ((v)&0x80) cpu->p|=FLAG_N; else cpu->p&=~FLAG_N;
 .macro SETZN a
-	bic %r11, #0x82
+	bic r11, #0x82
 	ands \a, #255
-	orreq %r11, #2
+	orreq r11, #2
 	tst \a, #0x80
-	orrne %r11, #0x80
+	orrne r11, #0x80
 .endm
 
 .macro PUSHBYTE reg8
-	add %r2, %r5, #0x100  	@ scrapreg = mem+0x100, i.e. bottom of stack space
-	strb \reg8, [%r2, %r10]
-	sub %r10, %r10, #1
-	and %r10, %r10, #255
+	add r2, r5, #0x100  	@ scrapreg = mem+0x100, i.e. bottom of stack space
+	strb \reg8, [r2, r10]
+	sub r10, r10, #1
+	and r10, r10, #255
 .endm
 .macro PULLBYTE reg8
-	add %r2, %r5, #0x100  	@ scrapreg = mem+0x100, i.e. bottom of stack space
-	add %r10, %r10, #1
-	and %r10, %r10, #255
-	ldrb \reg8, [%r2, %r10]
+	add r2, r5, #0x100  	@ scrapreg = mem+0x100, i.e. bottom of stack space
+	add r10, r10, #1
+	and r10, r10, #255
+	ldrb \reg8, [r2, r10]
 .endm
 
 .macro START_ZP
-	READBYTE_PC %r0			@ uint16_t addr=readmem(cpu->pc); cpu->pc++;
-	READBYTED %r1, %r0		@ uint8_t temp=readmem(addr);
+	READBYTE_PC r0			@ uint16_t addr=readmem(cpu->pc); cpu->pc++;
+	READBYTED r1, r0		@ uint8_t temp=readmem(addr);
 .endm
 
 .macro START_ZP_X
-	READBYTE_PC %r0			@ uint16_t addr=readmem(cpu->pc); cpu->pc++;
-	add %r0, %r0, %r8
-	and %r0, %r0, #255
-	READBYTED %r1, %r0		@ uint8_t temp=readmem(addr);
+	READBYTE_PC r0			@ uint16_t addr=readmem(cpu->pc); cpu->pc++;
+	add r0, r0, r8
+	and r0, r0, #255
+	READBYTED r1, r0		@ uint8_t temp=readmem(addr);
 .endm
 
 .macro START_ABS
-	READWORD_PC %r0			@ uint16_t addr=readword(cpu->pc); cpu->pc+=2;
-	READBYTE %r1, %r0		@ uint8_t temp=readmem(addr);
+	READWORD_PC r0			@ uint16_t addr=readword(cpu->pc); cpu->pc+=2;
+	READBYTE r1, r0		@ uint8_t temp=readmem(addr);
 .endm
 
 
 
 .macro START_ABS_O reg
-	READWORD_PC %r0			@ uint16_t addr=readword(cpu->pc); cpu->pc+=2;
-	add %r0, \reg
-	READBYTE %r1, %r0		@ uint8_t temp=readmem(addr);
+	READWORD_PC r0			@ uint16_t addr=readword(cpu->pc); cpu->pc+=2;
+	add r0, \reg
+	READBYTE r1, r0		@ uint8_t temp=readmem(addr);
 .endm
 .macro START_ABS_X
-	START_ABS_O %r8
+	START_ABS_O r8
 .endm
 .macro START_ABS_Y
-	START_ABS_O %r9
+	START_ABS_O r9
 .endm
 
 
 // For instructions of the form OPCODE (,x)
 .macro START_INDZX
-	READBYTE_PC %r1			@ register uint8_t temp=readmem(cpu->pc); pc++;
-	add %r1, %r8			@ temp += cpu->x;
-	and %r1, #255
-	READWORD %r0, %r1		@ register uint16_t addr=readword(temp);
+	READBYTE_PC r1			@ register uint8_t temp=readmem(cpu->pc); pc++;
+	add r1, r8			@ temp += cpu->x;
+	and r1, #255
+	READWORD r0, r1		@ register uint16_t addr=readword(temp);
 .endm
 
 // For instructions of the form OPCODE (),y
 .macro START_INDZY
-	READBYTE_PC %r1			@ register uint8_t temp=readmem(cpu->pc); pc++;
-	READWORD %r0, %r1		@ register uint16_t addr=readword(temp);
-	add %r0, %r9			@ addr += cpu->y;
-	READBYTE %r1, %r0		@ temp = readmem(addr);
+	READBYTE_PC r1			@ register uint8_t temp=readmem(cpu->pc); pc++;
+	READWORD r0, r1		@ register uint16_t addr=readword(temp);
+	add r0, r9			@ addr += cpu->y;
+	READBYTE r1, r0		@ temp = readmem(addr);
 .endm
 
 
 
 
-/*************************************/
-/**  OPCODES IN ALPHABETICAL ORDER  **
-/*************************************/
+@ *************************************
+@ **  OPCODES IN ALPHABETICAL ORDER  **
+@ *************************************
 
-
-/*******
- * ADC *
- *******/
 
 .macro BODY_ADC
-	tst %r11, #8		@ if (cpu->p & FLAG_D) do BCD arithmetic in a C function
+	tst r11, #8		@ if (cpu->p & FLAG_D) do BCD arithmetic in a C function
 	bne .+80
-	add %r2, %r7, %r1   	@ r2 = (cpu->a+temp+((cpu->p & FLAG_C)?1:0));
-	tst %r11, #1
-	addne %r2, #1
-	bic %r11, #0x41     	@ clear C and V flags
-	tst %r2, #256
-	orrne %r11, #1			@ set FLAG_C
-	eor %r0, %r7, %r1		@ r0 = cpu->a ^ temp
-	lsls %r0, #24
+	add r2, r7, r1   	@ r2 = (cpu->a+temp+((cpu->p & FLAG_C)?1:0));
+	tst r11, #1
+	addne r2, #1
+	bic r11, #0x41     	@ clear C and V flags
+	tst r2, #256
+	orrne r11, #1			@ set FLAG_C
+	eor r0, r7, r1		@ r0 = cpu->a ^ temp
+	lsls r0, #24
 	bmi .+16
-	eor %r0, %r7, %r2		@ r1 = cpu->a ^ result_of_addition
-	lsls %r0, #24
-	orrmi %r11, #0x40		@ set FLAG_V
-	and %r7, %r2, #255		@ cpu->a = result_of_addition & 255
-	SETZN %r7				@ setzn(cpu->a);   <-- 5 instructions
+	eor r0, r7, r2		@ r1 = cpu->a ^ result_of_addition
+	lsls r0, #24
+	orrmi r11, #0x40		@ set FLAG_V
+	and r7, r2, #255		@ cpu->a = result_of_addition & 255
+	SETZN r7				@ setzn(cpu->a);   <-- 5 instructions
 	b .+36
 	push {lr}
-	strb %r7,  [%r4, #6]	// update A
-	strb %r11, [%r4, #10]   // update P
-	mov %r0, %r4			// r0=cpu*, r1=imm
+	strb r7,  [r4, #6]	// update A
+	strb r11, [r4, #10]   // update P
+	mov r0, r4			// r0=cpu*, r1=imm
 	bl adc_bcd
 	pop {lr}
-	ldrb %r7,  [%r4, #6]	// update A
-	ldrb %r11, [%r4, #10]   // update P
+	ldrb r7,  [r4, #6]	// update A
+	ldrb r11, [r4, #10]   // update P
 .endm
 
 // 0x69: ADC imm
 opasm_adc_imm:
-	READBYTE_PC %r1		@ register uint8_t temp=readmem(cpu->pc); cpu->pc++;
+	READBYTE_PC r1		@ register uint8_t temp=readmem(cpu->pc); cpu->pc++;
 	BODY_ADC
 	RETURN #2
 
@@ -450,7 +446,7 @@ opasm_adc_abs_x:
 // 0x61: ADC (,x)
 opasm_adc_indzx:
 	START_INDZX
-	READBYTE %r1, %r0		@ temp = readmem(addr);
+	READBYTE r1, r0		@ temp = readmem(addr);
 	BODY_ADC
 	RETURN #6				@ return 6
 
@@ -465,14 +461,14 @@ opasm_adc_indzy:
  * AND *
  *******/
 .macro BODY_AND
-	and %r7, %r7, %r1		@ cpu->a &= temp;
-	SETZN %r7				@ setzn(cpu->a);
+	and r7, r7, r1		@ cpu->a &= temp;
+	SETZN r7				@ setzn(cpu->a);
 .endm
 
 // 0x21: AND (,x)
 opasm_and_indzx:
 	START_INDZX
-	READBYTE %r1, %r0		@ temp = readmem(addr);
+	READBYTE r1, r0		@ temp = readmem(addr);
 	BODY_AND
 	RETURN #6				@ return 6
 
@@ -484,7 +480,7 @@ opasm_and_indzy:
 
 // 0x29: AND imm
 opasm_and_imm:
-	READBYTE_PC %r1			@ r1 = imm
+	READBYTE_PC r1			@ r1 = imm
 	BODY_AND
 	RETURN #3				@ return 3
 
@@ -525,43 +521,43 @@ opasm_and_abs_x:
 
 .macro BODY_ASL reg
 	lsl \reg, #1			@ temp<<=1;
-	bic %r11, #1			@ clear FLAG_C
+	bic r11, #1			@ clear FLAG_C
 	tst \reg, #0x100
-	orrne %r11, #1			@ set FLAG_C if bit 7 carried over
+	orrne r11, #1			@ set FLAG_C if bit 7 carried over
 	and \reg, #255
 	SETZN \reg				@ setzn(temp);
 .endm
 
 opasm_asl_a:
-	BODY_ASL %r7
+	BODY_ASL r7
 	RETURN #2
 
 // 0x06: ASL zp
 opasm_asl_zp:
 	START_ZP				@ r0=zp address, r1=byte from zp address
-	BODY_ASL %r1
-	WRITEBYTED %r1, %r0
+	BODY_ASL r1
+	WRITEBYTED r1, r0
 	RETURN #5				@ return 5
 
 // 0x16: ASL zp,x
 opasm_asl_zp_x:
 	START_ZP_X				@ r1=byte from zp, r0=zp address
-	BODY_ASL %r1
-	WRITEBYTED %r1, %r0
+	BODY_ASL r1
+	WRITEBYTED r1, r0
 	RETURN #5				@ return 5
 
 // 0x0E: ASL abs
 opasm_asl_abs:
 	START_ABS				@ r0=address, r1=byte from address
-	BODY_ASL %r1
-	WRITEBYTE %r1, %r0
+	BODY_ASL r1
+	WRITEBYTE r1, r0
 	RETURN #6				@ return 6;
 
 // 0x1E: ASL abs,x
 opasm_asl_abs_x:
 	START_ABS_X				@ r0=address, r1=byte from address
-	BODY_ASL %r1
-	WRITEBYTE %r1, %r0
+	BODY_ASL r1
+	WRITEBYTE r1, r0
 	RETURN #7				@ return 7;
 
 
@@ -570,13 +566,13 @@ opasm_asl_abs_x:
  *************************************************/
 
 .macro BRANCH flag, testop
-	READSIGNEDBYTE %r1, %r6		@ register int8_t offset=(int8_t)readmem(cpu->pc);
-	add %r6, #1 				@ pc++;
-	mov %r0, #2					@ register uint8_t temp=2;
-	tst %r11, \flag				@ if (!(cpu->p & FLAG_Z)) {
+	READSIGNEDBYTE r1, r6		@ register int8_t offset=(int8_t)readmem(cpu->pc);
+	add r6, #1 				@ pc++;
+	mov r0, #2					@ register uint8_t temp=2;
+	tst r11, \flag				@ if (!(cpu->p & FLAG_Z)) {
 	\testop .+12
-	add %r0, %r0, #1			@     temp++;
-	add %r6, %r6, %r1			@     cpu->pc+=offset;
+	add r0, r0, #1			@     temp++;
+	add r6, r6, r1			@     cpu->pc+=offset;
 	bx lr						@ }
 .endm
 
@@ -604,14 +600,14 @@ opasm_bcs:
  *******/
 
 .macro BODY_BIT
-	bic %r11, #0xc2			@ clear Z,V,N
-	tst %r1, #0x40			@ SET_FLAG(FLAG_V, temp&0x40);
-	orrne %r11, #0x40
-	tst %r1, #0x80			@ SET_FLAG(FLAG_N, temp&0x80);
-	orrne %r11, #0x80
-	and %r1, %r7, %r1		@ temp = cpu->a&temp
-	cmp %r1, #0				@ SET_FLAG(FLAG_Z, !temp);
-	orreq %r11, #2
+	bic r11, #0xc2			@ clear Z,V,N
+	tst r1, #0x40			@ SET_FLAG(FLAG_V, temp&0x40);
+	orrne r11, #0x40
+	tst r1, #0x80			@ SET_FLAG(FLAG_N, temp&0x80);
+	orrne r11, #0x80
+	and r1, r7, r1		@ temp = cpu->a&temp
+	cmp r1, #0				@ SET_FLAG(FLAG_Z, !temp);
+	orreq r11, #2
 .endm
 
 // 0x24: BIT zp
@@ -631,17 +627,17 @@ opasm_bit_abs:
  * CLC / CLD / CLV / CLI *
  *************************/
 opasm_clc:
-	bic %r11, #1 			@ cpu->p &= ~FLAG_C;
+	bic r11, #1 			@ cpu->p &= ~FLAG_C;
 	RETURN #2
 opasm_cld:
-	bic %r11, #8 			@ cpu->p &= ~FLAG_D;
+	bic r11, #8 			@ cpu->p &= ~FLAG_D;
 	RETURN #2
 opasm_clv:
-	bic %r11, #0x40 		@ cpu->p &= ~FLAG_V;
+	bic r11, #0x40 		@ cpu->p &= ~FLAG_V;
 	RETURN #2
 opasm_cli:
 	UPDATE_TAKEINT			@ cpu->takeint=(cpu->interrupt && !(cpu->p & FLAG_I));
-	bic %r11, #4			@ cpu->p &= ~FLAG_I;
+	bic r11, #4			@ cpu->p &= ~FLAG_I;
 	RETURN #-2				@ return -2;
 
 
@@ -649,16 +645,16 @@ opasm_cli:
  * CMP *
  *******/
 .macro BODY_CMP reg
-	bic %r11, #1			@ clear FLAG_C
-	subs %r1, \reg, %r1		@ temp = cpu->a - temp
-	orrcs %r11, #1			@ set FLAG_C if carried
-	SETZN %r1				@ setzn(temp);
+	bic r11, #1			@ clear FLAG_C
+	subs r1, \reg, r1		@ temp = cpu->a - temp
+	orrcs r11, #1			@ set FLAG_C if carried
+	SETZN r1				@ setzn(temp);
 .endm
 
 // 0xC9: CMP imm
 opasm_cmp_imm:
-	READBYTE_PC %r1		@ register uint8_t temp=readmem(cpu->pc); cpu->pc++;
-    BODY_CMP %r7
+	READBYTE_PC r1		@ register uint8_t temp=readmem(cpu->pc); cpu->pc++;
+    BODY_CMP r7
 	RETURN #2			@ return 2;
 
 // 0xC5: CMP zp
@@ -666,54 +662,54 @@ opasm_cmp_imm:
 // 0xC4: CPY zp
 .macro CMP_ZP reg
 	START_ZP				@ r0=zp address, r1=byte from zp address
-	bic %r11, #1			@ clear FLAG_C
-	subs %r1, \reg, %r1		@ temp = cpu->a - temp
-	orrcs %r11, #1			@ set FLAG_C if carried
-	SETZN %r1				@ setzn(temp);
+	bic r11, #1			@ clear FLAG_C
+	subs r1, \reg, r1		@ temp = cpu->a - temp
+	orrcs r11, #1			@ set FLAG_C if carried
+	SETZN r1				@ setzn(temp);
     RETURN #3				@ return 3;
 .endm
 opasm_cmp_zp:
-	CMP_ZP %r7
+	CMP_ZP r7
 opasm_cpx_zp:
-	CMP_ZP %r8
+	CMP_ZP r8
 opasm_cpy_zp:
-	CMP_ZP %r9
+	CMP_ZP r9
 
 // 0xD5: CMP zp,x
 opasm_cmp_zp_x:
 	START_ZP_X				@ r1=byte from zp, r0=zp address
-	BODY_CMP %r7
+	BODY_CMP r7
     RETURN #3				@ return 3;
 
 // 0xCD: CMP abs
 opasm_cmp_abs:
 	START_ABS				@ r0=address, r1=byte from address
-	BODY_CMP %r7
+	BODY_CMP r7
     RETURN #4				@ return 4;
 
 // 0xD9: CMP abs,y
 opasm_cmp_abs_y:
 	START_ABS_Y				@ r0=address, r1=byte from address
-	BODY_CMP %r7
+	BODY_CMP r7
     RETURN #4				@ return 4;
 
 // 0xDD: CMP abs,x
 opasm_cmp_abs_x:
 	START_ABS_X				@ r0=address, r1=byte from address
-	BODY_CMP %r7
+	BODY_CMP r7
     RETURN #4				@ return 4;
 
 // 0xC1: CMP (,x)
 opasm_cmp_indzx:
 	START_INDZX				@ r0=address, r1=byte from address
-	READBYTE %r1, %r0		@ temp = readmem(addr);
-	BODY_CMP %r7
+	READBYTE r1, r0		@ temp = readmem(addr);
+	BODY_CMP r7
     RETURN #6				@ return 6;
 
 // 0xD1: CMP (),y
 opasm_cmp_indzy:
 	START_INDZY				@ r0=address, r1=byte from address
-	BODY_CMP %r7
+	BODY_CMP r7
     RETURN #6				@ return 6;
 
 
@@ -722,16 +718,16 @@ opasm_cmp_indzy:
  *******/
 
 .macro BODY_CPX
-	sub %r0, %r8, %r1
-	SETZN %r0			@ setzn(cpu->y - temp);
-    bic %r11, #1		@ SET_FLAG(FLAG_C, cpu->y>=temp);
- 	cmp %r8, %r1
- 	orrge %r11, #1
+	sub r0, r8, r1
+	SETZN r0			@ setzn(cpu->y - temp);
+    bic r11, #1		@ SET_FLAG(FLAG_C, cpu->y>=temp);
+ 	cmp r8, r1
+ 	orrge r11, #1
 .endm
 
 // 0xE0: CPX imm
 opasm_cpx_imm:
-	READBYTE_PC %r1		@ register uint8_t temp=readmem(cpu->pc); cpu->pc++;
+	READBYTE_PC r1		@ register uint8_t temp=readmem(cpu->pc); cpu->pc++;
 	BODY_CPX
 	RETURN #2			@ return 2;
 
@@ -747,16 +743,16 @@ opasm_cpx_abs:
  *******/
 
 .macro BODY_CPY
-	sub %r0, %r9, %r1
-	SETZN %r0			@ setzn(cpu->y - temp);
-    bic %r11, #1		@ SET_FLAG(FLAG_C, cpu->y>=temp);
- 	cmp %r9, %r1
- 	orrge %r11, #1
+	sub r0, r9, r1
+	SETZN r0			@ setzn(cpu->y - temp);
+    bic r11, #1		@ SET_FLAG(FLAG_C, cpu->y>=temp);
+ 	cmp r9, r1
+ 	orrge r11, #1
 .endm
 
 // 0xC0: CPY imm
 opasm_cpy_imm:
-	READBYTE_PC %r1		@ register uint8_t temp=readmem(cpu->pc); cpu->pc++;
+	READBYTE_PC r1		@ register uint8_t temp=readmem(cpu->pc); cpu->pc++;
 	BODY_CPY
 	RETURN #2			@ return 2;
 
@@ -772,36 +768,36 @@ opasm_cpy_abs:
  *******/
 
 .macro BODY_DEC
-	sub %r1, #1				@ temp --;
-	SETZN %r1				@ setzn(temp);
+	sub r1, #1				@ temp --;
+	SETZN r1				@ setzn(temp);
 .endm
 
 // 0xC6: DEC zp
 opasm_dec_zp:
 	START_ZP				@ r0=zp address, r1=byte from zp address
 	BODY_DEC
-	WRITEBYTED %r1, %r0     @ writemem(addr,temp);
+	WRITEBYTED r1, r0     @ writemem(addr,temp);
 	RETURN #5				@ return 5;
 
 // 0xD6: DEC zp,x
 opasm_dec_zp_x:
 	START_ZP_X				@ r1=byte from zp, r0=zp address
 	BODY_DEC
-	WRITEBYTED %r1, %r0     @ writemem(addr,temp);
+	WRITEBYTED r1, r0     @ writemem(addr,temp);
 	RETURN #5				@ return 5;
 
 // 0xCE: DEC abs
 opasm_dec_abs:
 	START_ABS				@ r0=address, r1=byte from address
 	BODY_DEC
-	WRITEBYTE  %r1, %r0     @ writemem(addr,temp);
+	WRITEBYTE  r1, r0     @ writemem(addr,temp);
 	RETURN #6				@ return 6;
 
 // 0xDE: DEC abs,x
 opasm_dec_abs_x:
 	START_ABS_X				@ r0=address, r1=byte from address
 	BODY_DEC
-	WRITEBYTE  %r1, %r0     @ writemem(addr,temp);
+	WRITEBYTE  r1, r0     @ writemem(addr,temp);
 	RETURN #7				@ return 7;
 
 
@@ -811,16 +807,16 @@ opasm_dec_abs_x:
 
 // 0xCA: DEX
 opasm_dex:
-	sub %r8, %r8, #1		@ cpu->x--;
-	and %r8, %r8, #255
-	SETZN %r8				@ setzn(cpu->x);
+	sub r8, r8, #1		@ cpu->x--;
+	and r8, r8, #255
+	SETZN r8				@ setzn(cpu->x);
 	RETURN #2				@ return 2;
 
 // 0x88: DEY
 opasm_dey:
-	sub %r9, %r9, #1		@ cpu->y--;
-	and %r9, %r9, #255
-	SETZN %r9				@ setzn(cpu->y);
+	sub r9, r9, #1		@ cpu->y--;
+	and r9, r9, #255
+	SETZN r9				@ setzn(cpu->y);
 	RETURN #2				@ return 2;
 
 
@@ -829,13 +825,13 @@ opasm_dey:
  *******/
 
 .macro BODY_EOR
-	eor %r7, %r7, %r1		@ cpu->a ^= temp;
-	SETZN %r7				@ setzn(cpu->a);
+	eor r7, r7, r1		@ cpu->a ^= temp;
+	SETZN r7				@ setzn(cpu->a);
 .endm
 
 // 0x49: EOR imm
 opasm_eor_imm:
-	READBYTE_PC %r1		@ cpu->a ^= readmem(cpu->pc); cpu->pc++;
+	READBYTE_PC r1		@ cpu->a ^= readmem(cpu->pc); cpu->pc++;
 	BODY_EOR
 	RETURN #2			@ return 2;
 
@@ -872,7 +868,7 @@ opasm_eor_abs_x:
 // 0x41: EOR (,x)
 opasm_eor_indzx:
 	START_INDZX
-	READBYTE %r1, %r0		@ temp = readmem(addr);
+	READBYTE r1, r0		@ temp = readmem(addr);
 	BODY_EOR
 	RETURN #6				@ return 6
 
@@ -888,22 +884,22 @@ opasm_eor_indzy:
  *******/
 
 .macro BODY_INC
-	add %r1, #1				@ temp ++;
-	SETZN %r1				@ setzn(temp);
+	add r1, #1				@ temp ++;
+	SETZN r1				@ setzn(temp);
 .endm
 
 // 0xE6: INC zp
 opasm_inc_zp:
 	START_ZP				@ r0=zp address, r1=byte from zp address
 	BODY_INC
-	WRITEBYTED %r1, %r0     @ writemem(addr,temp);
+	WRITEBYTED r1, r0     @ writemem(addr,temp);
 	RETURN #5				@ return 5;
 
 // 0xF6: INC zp,x
 opasm_inc_zp_x:
 	START_ZP_X				@ r1=byte from zp, r0=zp address
 	BODY_INC
-	WRITEBYTED %r1, %r0     @ writemem(addr,temp);
+	WRITEBYTED r1, r0     @ writemem(addr,temp);
 	RETURN #5				@ return 5;
 
 
@@ -911,7 +907,7 @@ opasm_inc_zp_x:
 opasm_inc_abs:
 	START_ABS				@ r0=address, r1=byte from address
 	BODY_INC
-	WRITEBYTE  %r1, %r0     @ writemem(addr,temp);
+	WRITEBYTE  r1, r0     @ writemem(addr,temp);
 	RETURN #6				@ return 6;
 
 
@@ -919,7 +915,7 @@ opasm_inc_abs:
 opasm_inc_abs_x:
 	START_ABS_X				@ r0=address, r1=byte from address
 	BODY_INC
-	WRITEBYTE  %r1, %r0     @ writemem(addr,temp);
+	WRITEBYTE  r1, r0     @ writemem(addr,temp);
 	RETURN #7				@ return 7;
 
 
@@ -929,17 +925,17 @@ opasm_inc_abs_x:
 
 // 0xE8: INX
 opasm_inx:
-	add %r8, %r8, #1		@ cpu->x++;
-	and %r8, %r8, #255
-	SETZN %r8				@ setzn(cpu->x);
+	add r8, r8, #1		@ cpu->x++;
+	and r8, r8, #255
+	SETZN r8				@ setzn(cpu->x);
 	RETURN #2				@ return 2;
 
 
 // 0xC8: INY
 opasm_iny:
-	add %r9, %r9, #1		@ cpu->y++;
-	and %r9, %r9, #255
-	SETZN %r9				@ setzn(cpu->y);
+	add r9, r9, #1		@ cpu->y++;
+	and r9, r9, #255
+	SETZN r9				@ setzn(cpu->y);
 	RETURN #2				@ return 2;
 
 
@@ -949,23 +945,23 @@ opasm_iny:
 
 // 0x4C: JMP
 opasm_jmp:
-	READWORD %r6, %r6
+	READWORD r6, r6
 	RETURN #3
 
 // 0x6C: JMP ()
 opasm_jmp_ind:
-	READWORD_PC %r0			@ register uint16_t addr=readwordpc();
-	and %r1, %r0, #255
-	cmp %r1, #255
+	READWORD_PC r0			@ register uint16_t addr=readwordpc();
+	and r1, r0, #255
+	cmp r1, #255
 	beq .+12
-	READWORD %r6, %r0		@ cpu->pc=readword(addr);
+	READWORD r6, r0		@ cpu->pc=readword(addr);
 	RETURN #5
 	// JMP address lives in word spanning page boundary... have to do a silly thing.
-	READBYTE %r1, %r0		@ get lo byte from top of page...
-	and %r0, #0xff00			@ and hi byte from bottom of page!
-	READBYTE %r2, %r0
-	lsr %r6, %r2, #8
-	orr %r6, %r1
+	READBYTE r1, r0		@ get lo byte from top of page...
+	and r0, #0xff00			@ and hi byte from bottom of page!
+	READBYTE r2, r0
+	lsr r6, r2, #8
+	orr r6, r1
 	RETURN #5
 
 
@@ -974,10 +970,10 @@ opasm_jmp_ind:
  *******/
 
 opasm_jsr:
-	READWORD %r3, %r6		@ uint16_t addr=readwordpc(); cpu->pc--;
-	add %r6, %r6, #1
-	PUSHWORD %r6, %r2
-	mov %r6, %r3		@ cpu->pc=addr;
+	READWORD r3, r6		@ uint16_t addr=readwordpc(); cpu->pc--;
+	add r6, r6, #1
+	PUSHWORD r6, r2
+	mov r6, r3		@ cpu->pc=addr;
 	RETURN #6;			@ return 6;
 
 
@@ -987,12 +983,12 @@ opasm_jsr:
 
 // 0xB7: LAX zp,y
 opasm_lax_zp_y:
-	READBYTE_PC %r0			@ uint16_t addr=readmem(cpu->pc); cpu->pc++;
-	add %r0, %r0, %r9   	@ addr += cpu->9
-	and %r0, %r0, #255  	@ addr &= 255 , i.e. keep in zero page
-	READBYTE %r7, %r0   	@ cpu->a=cpu->x=readmem(addr);
-	mov %r8, %r7
-	SETZN %r7				@ setzn(cpu->a);
+	READBYTE_PC r0			@ uint16_t addr=readmem(cpu->pc); cpu->pc++;
+	add r0, r0, r9   	@ addr += cpu->9
+	and r0, r0, #255  	@ addr &= 255 , i.e. keep in zero page
+	READBYTE r7, r0   	@ cpu->a=cpu->x=readmem(addr);
+	mov r8, r7
+	SETZN r7				@ setzn(cpu->a);
 	RETURN #3				@ return 3;
 
 
@@ -1009,96 +1005,96 @@ opasm_lax_zp_y:
 	RETURN #2			@ return 2;
 .endm
 opasm_lda_imm:
-	LOAD_IMM %r7
+	LOAD_IMM r7
 opasm_ldx_imm:
-	LOAD_IMM %r8
+	LOAD_IMM r8
 opasm_ldy_imm:
-	LOAD_IMM %r9
+	LOAD_IMM r9
 
 // 0xA5: LDA zp
 // 0xA6: LDX zp
 // 0xA4: LDY zp
 .macro LOAD_ZP dest
-	READBYTE_PC %r0		@ uint16_t addr=readmem(cpu->pc); cpu->pc++;
-	READBYTE \dest, %r0	@ cpu->a=readmem(addr);
+	READBYTE_PC r0		@ uint16_t addr=readmem(cpu->pc); cpu->pc++;
+	READBYTE \dest, r0	@ cpu->a=readmem(addr);
 	SETZN \dest			@ setzn(cpu->a);
 	RETURN #3			@ return 3;
 .endm
 opasm_lda_zp:
-	LOAD_ZP %r7
+	LOAD_ZP r7
 opasm_ldx_zp:
-	LOAD_ZP %r8
+	LOAD_ZP r8
 opasm_ldy_zp:
-	LOAD_ZP %r9
+	LOAD_ZP r9
 
 // 0xB5: LDA zp,x
 // 0xB6: LDX zp,y
 // 0xB4: LDY zp,x
 .macro LOAD_ZPO dest, offset
-	READBYTE_PC %r0			@ uint16_t addr=readmem(cpu->pc); cpu->pc++;
-	add %r0, %r0, \offset   @ addr += cpu->x
-	and %r0, %r0, #255  	@ addr &= 255 , i.e. keep in zero page
-	READBYTE \dest, %r0   	@ cpu->a=readmem(addr);
+	READBYTE_PC r0			@ uint16_t addr=readmem(cpu->pc); cpu->pc++;
+	add r0, r0, \offset   @ addr += cpu->x
+	and r0, r0, #255  	@ addr &= 255 , i.e. keep in zero page
+	READBYTE \dest, r0   	@ cpu->a=readmem(addr);
 	SETZN \dest				@ setzn(cpu->a);
 	RETURN #3				@ return 3;
 .endm
 opasm_lda_zp_x:
-	LOAD_ZPO %r7, %r8
+	LOAD_ZPO r7, r8
 opasm_ldx_zp_y:
-	LOAD_ZPO %r8, %r9
+	LOAD_ZPO r8, r9
 opasm_ldy_zp_x:
-	LOAD_ZPO %r9, %r8
+	LOAD_ZPO r9, r8
 
 // 0xAC: LDY abs
 // 0xAD: LDA abs
 // 0xAE: LDX abs
 .macro LOAD_ABS dest
-	READWORD_PC %r0			@ uint16_t addr=readwordpc();
-	READBYTE \dest, %r0   	@ cpu->a=readmem(addr);
+	READWORD_PC r0			@ uint16_t addr=readwordpc();
+	READBYTE \dest, r0   	@ cpu->a=readmem(addr);
 	SETZN \dest				@ setzn(cpu->a);
 	RETURN #4				@ return 4;
 .endm
 opasm_lda_abs:
-	LOAD_ABS %r7
+	LOAD_ABS r7
 opasm_ldx_abs:
-	LOAD_ABS %r8
+	LOAD_ABS r8
 opasm_ldy_abs:
-	LOAD_ABS %r9
+	LOAD_ABS r9
 
 // 0xBD: LDA abs,x
 // 0xB9: LDA abs,y
 // 0xBE: LDX abs,y
 // 0xBC: LDY abs,x
 .macro LOAD_ABS_OFF dest, offs
-	READWORD_PC %r0			@ uint16_t addr=readwordpc();
-	add %r0, \offs
-	READBYTE \dest, %r0   	@ cpu->a=readmem(addr);
+	READWORD_PC r0			@ uint16_t addr=readwordpc();
+	add r0, \offs
+	READBYTE \dest, r0   	@ cpu->a=readmem(addr);
 	SETZN \dest				@ setzn(cpu->a);
 	RETURN #4				@ return 4;
 .endm
 opasm_lda_abs_x:
-	LOAD_ABS_OFF %r7, %r8
+	LOAD_ABS_OFF r7, r8
 opasm_lda_abs_y:
-	LOAD_ABS_OFF %r7, %r9
+	LOAD_ABS_OFF r7, r9
 opasm_ldx_abs_y:
-	LOAD_ABS_OFF %r8, %r9
+	LOAD_ABS_OFF r8, r9
 opasm_ldy_abs_x:
-	LOAD_ABS_OFF %r9, %r8
+	LOAD_ABS_OFF r9, r8
 
 // 0xA1: LDA (,x)
 opasm_lda_indzx:
 	START_INDZX
-	READBYTE %r7, %r0		@ cpu->a = readmem(addr);
-	SETZN %r7
+	READBYTE r7, r0		@ cpu->a = readmem(addr);
+	SETZN r7
 	RETURN #6
 
 // 0xB1: LDA (),y
 opasm_lda_y:
-	READBYTE_PC %r0			@ register uint8_t temp=readmem(cpu->pc); cpu->pc++;
-	READWORD %r1, %r0 		@ register uint16_t addr=readword(temp);
-	add %r1, %r1, %r9		@ addr += y
-	READBYTE %r7, %r1		@ cpu->a=readmem(addr);
-	SETZN %r7				@ setzn(cpu->a);
+	READBYTE_PC r0			@ register uint8_t temp=readmem(cpu->pc); cpu->pc++;
+	READWORD r1, r0 		@ register uint16_t addr=readword(temp);
+	add r1, r1, r9		@ addr += y
+	READBYTE r7, r1		@ cpu->a=readmem(addr);
+	SETZN r7				@ setzn(cpu->a);
 	RETURN #5
 
 
@@ -1107,44 +1103,44 @@ opasm_lda_y:
  *******/
 
 .macro BODY_LSR reg
-	bic %r11, #1			@ clear FLAG_C
+	bic r11, #1			@ clear FLAG_C
 	lsrs \reg, #1			@ temp>>=1;
-	orrcs %r11, #1			@ set FLAG_C if bit 0 carried over
+	orrcs r11, #1			@ set FLAG_C if bit 0 carried over
 	SETZN \reg				@ setzn(temp);
 .endm
 
 // 0x4A: LSR A
 opasm_lsr_a:
-	BODY_LSR %r7
+	BODY_LSR r7
 	RETURN #2				@ return 2
 
 // 0x46: LSR zp
 opasm_lsr_zp:
 	START_ZP				@ r0=zp address, r1=byte from zp address
-	BODY_LSR %r1
-	WRITEBYTED %r1, %r0
+	BODY_LSR r1
+	WRITEBYTED r1, r0
 	RETURN #5				@ return 5
 
 // 0x56: LSR zp,x
 opasm_lsr_zp_x:
 	START_ZP_X				@ r1=byte from zp, r0=zp address
-	BODY_LSR %r1
-	WRITEBYTED %r1, %r0
+	BODY_LSR r1
+	WRITEBYTED r1, r0
 	RETURN #5				@ return 5
 
 
 // 0x4E: LSR abs
 opasm_lsr_abs:
 	START_ABS				@ r0=address, r1=byte from address
-	BODY_LSR %r1
-	WRITEBYTE %r1, %r0		@ writemem(addr,temp);
+	BODY_LSR r1
+	WRITEBYTE r1, r0		@ writemem(addr,temp);
 	RETURN #6				@ return 6
 
 // 0x5E: LSR abs,x
 opasm_lsr_abs_x:
 	START_ABS_X				@ r0=address, r1=byte from address
-	BODY_LSR %r1
-	WRITEBYTE %r1, %r0		@ writemem(addr,temp);
+	BODY_LSR r1
+	WRITEBYTE r1, r0		@ writemem(addr,temp);
 	RETURN #7				@ return 7
 
 
@@ -1189,13 +1185,13 @@ opasm_nop_abs_x:
  *******/
 
 .macro BODY_ORA
-	orr %r7, %r7, %r1		@ cpu->a|=readmem(addr);
-	SETZN %r7				@ setzn(cpu->a);
+	orr r7, r7, r1		@ cpu->a|=readmem(addr);
+	SETZN r7				@ setzn(cpu->a);
 .endm
 
 // 0x09: ORA imm
 opasm_ora_imm:
-	READBYTE_PC %r1			@ cpu->a |= readmem(cpu->pc); cpu->pc++;
+	READBYTE_PC r1			@ cpu->a |= readmem(cpu->pc); cpu->pc++;
 	BODY_ORA
 	RETURN #2				@ return 2;
 
@@ -1232,7 +1228,7 @@ opasm_ora_abs_x:
 // 0x01: ORA (,x)
 opasm_ora_indzx:
 	START_INDZX
-	READBYTE %r1, %r0		@ temp = readmem(addr);
+	READBYTE r1, r0		@ temp = readmem(addr);
 	BODY_ORA
 	RETURN #6				@ return 6;
 
@@ -1249,7 +1245,7 @@ opasm_ora_indzy:
 
 // 0x48: PHA
 opasm_pha:
-	PUSHBYTE %r7			@ push(cpu->a);
+	PUSHBYTE r7			@ push(cpu->a);
 	RETURN #3				@ return 3;
 
 
@@ -1259,8 +1255,8 @@ opasm_pha:
 
 // 0x08: PHP
 opasm_php:
-	orr %r0, %r11, #0x30 	@ register uint8_t  temp=0x30 | cpu->p;
-	PUSHBYTE %r0	 		@ push(temp);
+	orr r0, r11, #0x30 	@ register uint8_t  temp=0x30 | cpu->p;
+	PUSHBYTE r0	 		@ push(temp);
 	RETURN #3
 
 
@@ -1270,8 +1266,8 @@ opasm_php:
 
 // 0x68: PLA
 opasm_pla:
-	PULLBYTE %r7			@ cpu->a = pull();
-	SETZN %r7				@ setzn(cpu->a);
+	PULLBYTE r7			@ cpu->a = pull();
+	SETZN r7				@ setzn(cpu->a);
 	RETURN #4				@ return 4;
 
 
@@ -1281,9 +1277,9 @@ opasm_pla:
 
 // 0x28: PLP
 opasm_plp:
-	PULLBYTE %r1			@ uint8_t temp=pull();
+	PULLBYTE r1			@ uint8_t temp=pull();
 	//TODO! cpu->takeint=(cpu->interrupt && !(cpu->p & FLAG_I));
-	bic %r11, %r1, #0x30	@ cpu->p = temp & ~0x30;
+	bic r11, r1, #0x30	@ cpu->p = temp & ~0x30;
 	RETURN #-4;
 
 
@@ -1291,14 +1287,14 @@ opasm_plp:
  * RLA : Undocumented ROL + AND *
  ********************************/
  .macro BODY_RLA
-	lsl %r1, #1				@ temp<<=1;
-	tst %r11, #1			@ if (FLAG_C set) temp |= 1;
-	orrne %r1, #1
-	bic %r11, #1			@ clear C
-	tst %r1, #0x100			@ if (rotate carried) SET_FLAG(FLAG_C);
-	orrne %r11, #1
-	WRITEBYTED %r1, %r0
-	SETZN %r1				@ setzn(temp);
+	lsl r1, #1				@ temp<<=1;
+	tst r11, #1			@ if (FLAG_C set) temp |= 1;
+	orrne r1, #1
+	bic r11, #1			@ clear C
+	tst r1, #0x100			@ if (rotate carried) SET_FLAG(FLAG_C);
+	orrne r11, #1
+	WRITEBYTED r1, r0
+	SETZN r1				@ setzn(temp);
 .endm
 opasm_rla_zp:
 	START_ZP				@ r0=zp address, r1=byte from zp address
@@ -1322,7 +1318,7 @@ opasm_rla_abs_y:
 	RETURN #6				@ return 6
 opasm_rla_indzx:
 	START_INDZX
-	READBYTE %r1, %r0		@ temp = readmem(addr);
+	READBYTE r1, r0		@ temp = readmem(addr);
 	BODY_RLA
 	RETURN #7
 opasm_rla_indzy:
@@ -1336,45 +1332,45 @@ opasm_rla_indzy:
  *******/
  .macro BODY_ROL reg
 	lsl \reg, #1			@ temp<<=1;
-	tst %r11, #1			@ if (FLAG_C set) temp |= 1;
+	tst r11, #1			@ if (FLAG_C set) temp |= 1;
 	orrne \reg, #1
-	bic %r11, #1			@ clear C
+	bic r11, #1			@ clear C
 	tst \reg, #0x100		@ if (rotate carried) SET_FLAG(FLAG_C);
-	orrne %r11, #1
+	orrne r11, #1
 	SETZN \reg				@ setzn(temp);
 .endm
 
 // 0x2A: ROL A
 opasm_rol_a:
-	BODY_ROL %r7
+	BODY_ROL r7
 	RETURN #2				@ return 2
 
 // 0x26: ROL zp
 opasm_rol_zp:
 	START_ZP				@ r0=zp address, r1=byte from zp address
-	BODY_ROL %r1
-	WRITEBYTED %r1, %r0		@ writemem(addr,temp);
+	BODY_ROL r1
+	WRITEBYTED r1, r0		@ writemem(addr,temp);
 	RETURN #3				@ return 3
 
 // 0x36: ROL zp,x
 opasm_rol_zp_x:
 	START_ZP_X				@ r1=byte from zp, r0=zp address
-	BODY_ROL %r1
-	WRITEBYTED %r1, %r0		@ writemem(addr,temp);
+	BODY_ROL r1
+	WRITEBYTED r1, r0		@ writemem(addr,temp);
 	RETURN #5				@ return 5
 
 // 0x2E: ROL abs
 opasm_rol_abs:
 	START_ABS				@ r0=address, r1=byte from address
-	BODY_ROL %r1
-	WRITEBYTE %r1, %r0		@ writemem(addr,temp);
+	BODY_ROL r1
+	WRITEBYTE r1, r0		@ writemem(addr,temp);
 	RETURN #6				@ return 6
 
 // 0x3E: ROL abs,x
 opasm_rol_abs_x:
 	START_ABS_X				@ r0=address, r1=byte from address
-	BODY_ROL %r1
-	WRITEBYTE %r1, %r0		@ writemem(addr,temp);
+	BODY_ROL r1
+	WRITEBYTE r1, r0		@ writemem(addr,temp);
 	RETURN #6				@ return 6
 
 
@@ -1382,45 +1378,45 @@ opasm_rol_abs_x:
  * ROR *
  *******/
 .macro BODY_ROR reg
-	tst %r11, #1			@ if FLAG_C set
+	tst r11, #1			@ if FLAG_C set
 	orrne \reg, #0x100		@     temp |= 0x100;
-	bic %r11, #1			@ clear FLAG_C
+	bic r11, #1			@ clear FLAG_C
 	lsrs \reg, #1			@ temp>>=1;
-	orrcs %r11, #1			@ set FLAG_C if bit 0 carried over
+	orrcs r11, #1			@ set FLAG_C if bit 0 carried over
 	SETZN \reg				@ setzn(temp);
 .endm
 
 // 0x6A: ROR A
 opasm_ror_a:
-	BODY_ROR %r7
+	BODY_ROR r7
 	RETURN #2				@ return 2
 
 // 0x66: ROR zp
 opasm_ror_zp:
 	START_ZP				@ r0=zp address, r1=byte from zp address
-	BODY_ROR %r1
-	WRITEBYTED %r1, %r0
+	BODY_ROR r1
+	WRITEBYTED r1, r0
 	RETURN #5				@ return 5
 
 // 0x76: ROR zp,x
 opasm_ror_zp_x:
 	START_ZP_X				@ r1=byte from zp, r0=zp address
-	BODY_ROR %r1
-	WRITEBYTED %r1, %r0
+	BODY_ROR r1
+	WRITEBYTED r1, r0
 	RETURN #5				@ return 5
 
 // 0x6E: ROR abs
 opasm_ror_abs:
 	START_ABS				@ r0=address, r1=byte from address
-	BODY_ROR %r1
-	WRITEBYTE %r1, %r0		@ writemem(addr,temp);
+	BODY_ROR r1
+	WRITEBYTE r1, r0		@ writemem(addr,temp);
 	RETURN #6				@ return 6
 
 // 0x7E: ROR abs,x
 opasm_ror_abs_x:
 	START_ABS_X				@ r0=address, r1=byte from address
-	BODY_ROR %r1
-	WRITEBYTE %r1, %r0		@ writemem(addr,temp);
+	BODY_ROR r1
+	WRITEBYTE r1, r0		@ writemem(addr,temp);
 	RETURN #7				@ return 7
 
 
@@ -1429,12 +1425,12 @@ opasm_ror_abs_x:
  *******/
 
 .macro BODY_RRA
-	tst %r11, #1			@ if FLAG_C set
-	orrne %r1, #0x100		@     temp |= 0x100;
-	bic %r11, #1			@ clear FLAG_C
-	lsrs %r1, #1			@ temp>>=1;
+	tst r11, #1			@ if FLAG_C set
+	orrne r1, #0x100		@     temp |= 0x100;
+	bic r11, #1			@ clear FLAG_C
+	lsrs r1, #1			@ temp>>=1;
 	//orrcs %r11, #1			@ set FLAG_C if bit 0 carried over
-	WRITEBYTE %r1, %r0		@ writemem(addr,temp);
+	WRITEBYTE r1, r0		@ writemem(addr,temp);
 	BODY_ADC
 .endm
 
@@ -1472,7 +1468,7 @@ opasm_rra_abs_x:
 // 0x63: RRA (,x)		undocumented
 opasm_rra_indzx:
 	START_INDZX
-	READBYTE %r1, %r0		@ temp = readmem(addr);
+	READBYTE r1, r0		@ temp = readmem(addr);
 	BODY_RRA
 	RETURN #7
 
@@ -1488,9 +1484,9 @@ opasm_rra_indzy:
 
 // 0x40: RTI
 opasm_rti:
-	PULLBYTE %r11			@ uint8_t temp=pull();
-	and %r11, #0xcf 		@ cpu->p=temp & ~0x30;
-	PULLWORD %r6			@ cpu->pc=pull(); cpu->pc|=(pull()<<8);
+	PULLBYTE r11			@ uint8_t temp=pull();
+	and r11, #0xcf 		@ cpu->p=temp & ~0x30;
+	PULLWORD r6			@ cpu->pc=pull(); cpu->pc|=(pull()<<8);
 	RETURN #6;
 
 
@@ -1500,8 +1496,8 @@ opasm_rti:
 
 // 0x60: RTS
 opasm_rts:
-	PULLWORD %r6			@ cpu->pc=pull(); cpu->pc|=(pull()<<8);
-	add %r6, #1				@ cpu->pc++;
+	PULLWORD r6			@ cpu->pc=pull(); cpu->pc|=(pull()<<8);
+	add r6, #1				@ cpu->pc++;
 	RETURN #6;
 
 
@@ -1511,37 +1507,37 @@ opasm_rts:
  *******/
 
 .macro BODY_SBC
-	tst %r11, #8		@ if (cpu->p & FLAG_D) do BCD arithmetic in a C function
+	tst r11, #8		@ if (cpu->p & FLAG_D) do BCD arithmetic in a C function
 	bne .+80
-	tst %r11, #1			@ r1 = temp + (cpu->p & FLAG_C)?0:1;
-	addeq %r1, #1
-	sub %r2, %r7, %r1   	@ r2 = cpu->a - r1;
-	bic %r11, #0x41     	@ clear C and V flags
-	tst %r2, #256
-	orreq %r11, #1			@ set FLAG_C (ONLY IF RESULT DID *NOT* BORROW... THIS IS INVERSE TO ADC)
-	eor %r0, %r7, %r1		@ r0 = cpu->a ^ temp
-	lsls %r0, #24
+	tst r11, #1			@ r1 = temp + (cpu->p & FLAG_C)?0:1;
+	addeq r1, #1
+	sub r2, r7, r1   	@ r2 = cpu->a - r1;
+	bic r11, #0x41     	@ clear C and V flags
+	tst r2, #256
+	orreq r11, #1			@ set FLAG_C (ONLY IF RESULT DID *NOT* BORROW... THIS IS INVERSE TO ADC)
+	eor r0, r7, r1		@ r0 = cpu->a ^ temp
+	lsls r0, #24
 	bmi .+16
-	eor %r0, %r7, %r2		@ r1 = cpu->a ^ result_of_addition
-	lsls %r0, #24
-	orrmi %r11, #0x40		@ set FLAG_V
-	and %r7, %r2, #255		@ cpu->a = result_of_addition & 255
-	SETZN %r7				@ setzn(cpu->a);   <-- 5 instructions
+	eor r0, r7, r2		@ r1 = cpu->a ^ result_of_addition
+	lsls r0, #24
+	orrmi r11, #0x40		@ set FLAG_V
+	and r7, r2, #255		@ cpu->a = result_of_addition & 255
+	SETZN r7				@ setzn(cpu->a);   <-- 5 instructions
 	b .+36
 	push {lr}
-	strb %r7,  [%r4, #6]	// update A
-	strb %r11, [%r4, #10]   // update P
-	mov %r0, %r4			// r0=cpu*, r1=imm
+	strb r7,  [r4, #6]	// update A
+	strb r11, [r4, #10]   // update P
+	mov r0, r4			// r0=cpu*, r1=imm
 	bl sbc_bcd
 	pop {lr}
-	ldrb %r7,  [%r4, #6]	// update A
-	ldrb %r11, [%r4, #10]   // update P
+	ldrb r7,  [r4, #6]	// update A
+	ldrb r11, [r4, #10]   // update P
 .endm
 
 // 0xE9: SBC imm
 // 0xEB: SBC imm
 opasm_sbc_imm:
-	READBYTE_PC %r1		@ register uint8_t temp=readmem(cpu->pc); cpu->pc++;
+	READBYTE_PC r1		@ register uint8_t temp=readmem(cpu->pc); cpu->pc++;
 	BODY_SBC
 	RETURN #2
 
@@ -1578,7 +1574,7 @@ opasm_sbc_abs_x:
 // 0xE1: SBC (,x)
 opasm_sbc_indzx:
 	START_INDZX
-	READBYTE %r1, %r0		@ temp = readmem(addr);
+	READBYTE r1, r0		@ temp = readmem(addr);
 	BODY_SBC
 	RETURN #6				@ return 6
 
@@ -1594,14 +1590,14 @@ opasm_sbc_indzy:
  *******************/
 
 opasm_sec:
-	orr %r11, #1	@ cpu->p |= FLAG_C;
+	orr r11, #1	@ cpu->p |= FLAG_C;
 	RETURN #2
 opasm_sed:
-	orr %r11, #8	@ cpu->p |= FLAG_D;
+	orr r11, #8	@ cpu->p |= FLAG_D;
 	RETURN #2
 opasm_sei:
 	UPDATE_TAKEINT			@ cpu->takeint=(cpu->interrupt && !(cpu->p & FLAG_I));
-	orr %r11, #4			@ cpu->p |= FLAG_I;
+	orr r11, #4			@ cpu->p |= FLAG_I;
 	RETURN #-2;				@ return -2;
 
 
@@ -1610,11 +1606,11 @@ opasm_sei:
  **************************************/
 
 .macro BODY_SLO
-	lsl %r1, #1				@ temp<<=1;
-	and %r1, #255
-	WRITEBYTE %r1, %r0		@ writemem(addr,temp);
-	orr %r7, %r7, %r1		@ cpu->a|=temp;
-	SETZN %r7				@ setzn(cpu->a);
+	lsl r1, #1				@ temp<<=1;
+	and r1, #255
+	WRITEBYTE r1, r0		@ writemem(addr,temp);
+	orr r7, r7, r1		@ cpu->a|=temp;
+	SETZN r7				@ setzn(cpu->a);
 .endm
 opasm_slo_zp:
 	START_ZP				@ r0=zp address, r1=byte from zp address
@@ -1638,7 +1634,7 @@ opasm_slo_abs_x:
 	RETURN #6				@ return 6;
 opasm_slo_indzx:
 	START_INDZX
-	READBYTE %r1, %r0		@ temp = readmem(addr);
+	READBYTE r1, r0		@ temp = readmem(addr);
 	BODY_SLO
 	RETURN #7				@ return 7;
 opasm_slo_indzy:
@@ -1653,81 +1649,81 @@ opasm_slo_indzy:
 
 // 0x8C: STY abs
 opasm_sty_abs:
-	READWORD_PC %r0			@ uint16_t addr=readword(cpu->pc); cpu->pc+=2;
-	WRITEBYTE %r9, %r0		@ writemem(addr, cpu->y);
+	READWORD_PC r0			@ uint16_t addr=readword(cpu->pc); cpu->pc+=2;
+	WRITEBYTE r9, r0		@ writemem(addr, cpu->y);
 	RETURN #4				@ return 4
 
 // 0x85: STA zp
 // 0x84: STY zp
 // 0x86: STX zp
 .macro STORE_ZP val
-	READBYTE_PC %r0			@ uint16_t addr=readmem(cpu->pc); cpu->pc++;
-	WRITEBYTE \val, %r0		@ writemem(addr,cpu->a);
+	READBYTE_PC r0			@ uint16_t addr=readmem(cpu->pc); cpu->pc++;
+	WRITEBYTE \val, r0		@ writemem(addr,cpu->a);
 	RETURN #3				@ return 3;
 .endm
 opasm_sta_zp:
-	STORE_ZP %r7
+	STORE_ZP r7
 opasm_stx_zp:
-	STORE_ZP %r8
+	STORE_ZP r8
 opasm_sty_zp:
-	STORE_ZP %r9
+	STORE_ZP r9
 
 
 // 0x95: STA zp,x
 // 0x96: STX zp,y
 // 0x94: STY zp,x
 .macro STORE_ZPO dest, offset
-	READBYTE_PC %r0			@ uint16_t addr=readmem(cpu->pc); cpu->pc++;
-	add %r0, %r0, \offset   @ addr += cpu->x
-	and %r0, %r0, #255  	@ addr &= 255 , i.e. keep in zero page
-	WRITEBYTE \dest, %r0   	@ writemem(addr, a);
+	READBYTE_PC r0			@ uint16_t addr=readmem(cpu->pc); cpu->pc++;
+	add r0, r0, \offset   @ addr += cpu->x
+	and r0, r0, #255  	@ addr &= 255 , i.e. keep in zero page
+	WRITEBYTE \dest, r0   	@ writemem(addr, a);
 	RETURN #4				@ return 4;
 .endm
 opasm_sta_zp_x:
-	STORE_ZPO %r7, %r8
+	STORE_ZPO r7, r8
 opasm_stx_zp_y:
-	STORE_ZPO %r8, %r9
+	STORE_ZPO r8, r9
 opasm_sty_zp_x:
-	STORE_ZPO %r9, %r8
+	STORE_ZPO r9, r8
 
 // 0x8D: STA abs
 opasm_sta_abs:
-	READWORD_PC %r0			@ uint16_t addr=readword(cpu->pc); cpu->pc+=2;
-	WRITEBYTE %r7, %r0		@ writemem(addr, cpu->a);
+	READWORD_PC r0			@ uint16_t addr=readword(cpu->pc); cpu->pc+=2;
+	WRITEBYTE r7, r0		@ writemem(addr, cpu->a);
 	RETURN #4				@ return 4
 
 // 0x8E: STX abs
 opasm_stx_abs:
-	READWORD_PC %r0			@ uint16_t addr=readword(cpu->pc); cpu->pc+=2;
-	WRITEBYTE %r8, %r0		@ writemem(addr, cpu->x);
+	READWORD_PC r0			@ uint16_t addr=readword(cpu->pc); cpu->pc+=2;
+	WRITEBYTE r8, r0		@ writemem(addr, cpu->x);
 	RETURN #4				@ return 4
 
 // 0x99: STA abs,y
 opasm_sta_abs_y:
-	READWORD_PC %r0			@ uint16_t addr=readword(cpu->pc); cpu->pc+=2;
-	add %r0, %r9			@ addr += cpu->y;
-	WRITEBYTE %r7, %r0		@ writemem(addr, cpu->a);
+	READWORD_PC r0			@ uint16_t addr=readword(cpu->pc); cpu->pc+=2;
+	add r0, r9			@ addr += cpu->y;
+	WRITEBYTE r7, r0		@ writemem(addr, cpu->a);
 	RETURN #5				@ return 5
 
 // 0x9D: STA abs,x
 opasm_sta_abs_x:
-	READWORD_PC %r0			@ uint16_t addr=readword(cpu->pc); cpu->pc+=2;
-	add %r0, %r8			@ addr += cpu->x;
-	WRITEBYTE %r7, %r0		@ writemem(addr, cpu->a);
+	READWORD_PC r0			@ uint16_t addr=readword(cpu->pc); cpu->pc+=2;
+	add r0, r8			@ addr += cpu->x;
+	WRITEBYTE r7, r0		@ writemem(addr, cpu->a);
 	RETURN #5				@ return 5
 
 // 0x81: STA (,x)
 opasm_sta_indzx:
 	START_INDZX
-	WRITEBYTE %r7, %r0
+	WRITEBYTE r7, r0
 	RETURN #6
 
 // 0x91: STA (),y
 opasm_sta_indzy:
-	READBYTE_PC %r0			@ register uint8_t temp=readmem(cpu->pc); cpu->pc++;
-	READWORD %r1, %r0 		@ register uint16_t addr=readword(temp);
-	add %r1, %r1, %r9		@ addr += y
-	WRITEBYTE %r7, %r1		@ writemem(addr, cpu->a);
+	READBYTE_PC r0			@ register uint8_t temp=readmem(cpu->pc); cpu->pc++;
+	READWORD r1, r0 		@ register uint16_t addr=readword(temp);
+	add r1, r1, r9		@ addr += y
+	WRITEBYTE r7, r1		@ writemem(addr, cpu->a);
 	RETURN #5
 
 
@@ -1737,37 +1733,37 @@ opasm_sta_indzy:
 
 // 0xAA: TAX
 opasm_tax:
-	mov %r8, %r7			@ cpu->x = cpu->a;
-	SETZN %r8				@ setzn(cpu->x);
+	mov r8, r7			@ cpu->x = cpu->a;
+	SETZN r8				@ setzn(cpu->x);
 	RETURN #2				@ return 2;
 
 // 0xA8: TAY
 opasm_tay:
-	mov %r9, %r7			@ cpu->y=cpu->a;
-	SETZN %r9				@ setzn(cpu->y);
+	mov r9, r7			@ cpu->y=cpu->a;
+	SETZN r9				@ setzn(cpu->y);
 	RETURN #2				@ return 2;
 
 // 0xBA: TSX
 opasm_tsx:
-	mov %r8, %r10			@ cpu->x=cpu->s;
-	SETZN %r8				@ setzn(cpu->x);
+	mov r8, r10			@ cpu->x=cpu->s;
+	SETZN r8				@ setzn(cpu->x);
 	RETURN #2				@ return 2;
 
 // 0x8A: TXA
 opasm_txa:
-	mov %r7, %r8			@ cpu->a=cpu->x;
-	SETZN %r7				@ setzn(cpu->a);
+	mov r7, r8			@ cpu->a=cpu->x;
+	SETZN r7				@ setzn(cpu->a);
 	RETURN #2				@ return 2;
 
 // 0x9A: TXS
 opasm_txs:
-	mov %r10, %r8			@ cpu->s=cpu->x;
+	mov r10, r8			@ cpu->s=cpu->x;
 	RETURN #2				@ return 2;
 
 // 0x98: TYA
 opasm_tya:
-	mov %r7, %r9			@ cpu->a=cpu->y;
-	SETZN %r7				@ setzn(cpu->a);
+	mov r7, r9			@ cpu->a=cpu->y;
+	SETZN r7				@ setzn(cpu->a);
 	RETURN #2				@ return 2;
 
 
@@ -1778,12 +1774,12 @@ opasm_tya:
  * Undefined Opcode *
  ********************/
 opasm_undef:
-	mov %r0, %r4
+	mov r0, r4
 	bl log_undef_opcode
-	sub %r6, %r6, #1;		@ cpu->pc--;      	// PC never moves on
-	mov %r0, #0
-    str %r0, [%r4, #20]		@ cpu->takeint=0; 	// Interrupts never occur
-    str %r0, [%r4, #16]		@ cpu->nmi=0;  		// NMIs never occur
+	sub r6, r6, #1;		@ cpu->pc--;      	// PC never moves on
+	mov r0, #0
+    str r0, [r4, #20]		@ cpu->takeint=0; 	// Interrupts never occur
+    str r0, [r4, #16]		@ cpu->nmi=0;  		// NMIs never occur
     RETURN #65536			@ return 100000; 	// Actually lasts forever, but the above code keeps executing HLT forever
 
 

@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.ref.SoftReference;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,18 +19,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
-import android.net.http.AndroidHttpClient;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
@@ -165,81 +160,64 @@ public class ImageCache {
 		return URLEncoder.encode(url);
 	}
 
-    private Bitmap downloadBitmap(String url) {
-
-        // AndroidHttpClient is not allowed to be used from the main thread
-        final HttpClient client = AndroidHttpClient.newInstance("Android");
+    private Bitmap downloadBitmap(String urlString) {
+    	HttpURLConnection urlConnection;
 
         try {
-        	int statusCode = HttpStatus.SC_OK;
-        	HttpResponse response; 
-        	while (true) {
-                HttpGet getRequest = new HttpGet(url);
-                response = client.execute(getRequest);
-                statusCode = response.getStatusLine().getStatusCode();
-                if (statusCode == 302) {
-	            	url = response.getFirstHeader("Location").getValue();
-	            	continue;
-                }
-               	break;
-            }
-            if (statusCode != HttpStatus.SC_OK) {
+        	URL url = new URL(urlString);
+        	int statusCode;
+
+        	urlConnection = (HttpURLConnection) url.openConnection();
+        	urlConnection.setUseCaches(true);
+        	urlConnection.setInstanceFollowRedirects(true);
+
+        	urlConnection.connect();
+        	statusCode = urlConnection.getResponseCode();
+
+            if (statusCode != 200) {
                 Log.w(TAG, "Error " + statusCode + " while retrieving bitmap from " + url);
                 return null;
             }
 
-            final HttpEntity entity = response.getEntity();
-            if (entity != null) {
-                InputStream inputStream = null;
-                try {
-                	
-                	// Read the first 4K
-                	InputStream contentStream = entity.getContent();
-                	byte[] hdr = new byte[4096];
-                	int hdrlen = contentStream.read(hdr);
-                	
-                	// Decode the header (to get the width & height) using the byte array
-                	ByteArrayInputStream bin = new ByteArrayInputStream(hdr);
-                    BitmapFactory.Options options = new BitmapFactory.Options();
-                    options.inPreferredConfig = Bitmap.Config.RGB_565;
-                    options.inSampleSize = 1;
-                    options.inJustDecodeBounds = true;
-                    BitmapFactory.decodeStream(bin, null, options);
-                	//Log.d("ImageCache", "hdrlen=" + hdrlen + " w=" + options.outWidth + " h=" + options.outHeight);
-                    bin.close();
-                    
-                    // Calculate subsampling rate
-                    int cbBitmap = options.outHeight * options.outWidth * 2;
-                    while (cbBitmap >= 256*1024) {
-                    	cbBitmap /= 2;
-                    	options.inSampleSize++;
-                    }
-                    options.inJustDecodeBounds = false;
+            try (InputStream contentStream = urlConnection.getInputStream()) {
+				// Read the first 4K
+				byte[] hdr = new byte[4096];
+				int hdrlen = contentStream.read(hdr);
 
-                    // Decode the bitmap
-                    inputStream = new FlushedInputStream(url, contentStream, hdr, hdrlen);
-                    Bitmap bmp = BitmapFactory.decodeStream(inputStream, null, options);
-                    if (bmp == null) {
-                    	Log.e(TAG, "Eek! Failed to decode " + url);
-                    }
-                    return bmp;
-                } finally {
-                    if (inputStream != null) {
-                        inputStream.close();
-                    }
-                    entity.consumeContent();
-                }
+				// Decode the header (to get the width & height) using the byte array
+				BitmapFactory.Options options;
+				try (ByteArrayInputStream bin = new ByteArrayInputStream(hdr)) {
+					options = new BitmapFactory.Options();
+					options.inPreferredConfig = Bitmap.Config.RGB_565;
+					options.inSampleSize = 1;
+					options.inJustDecodeBounds = true;
+					BitmapFactory.decodeStream(bin, null, options);
+					//Log.d("ImageCache", "hdrlen=" + hdrlen + " w=" + options.outWidth + " h=" + options.outHeight);
+				}
+
+				// Calculate subsampling rate
+				int cbBitmap = options.outHeight * options.outWidth * 2;
+				while (cbBitmap >= 256*1024) {
+					cbBitmap /= 2;
+					options.inSampleSize++;
+				}
+				options.inJustDecodeBounds = false;
+
+				// Decode the bitmap
+				try (InputStream inputStream = new FlushedInputStream(urlString, contentStream, hdr, hdrlen)) {
+					Bitmap bmp = BitmapFactory.decodeStream(inputStream, null, options);
+					if (bmp == null) {
+						Log.e(TAG, "Eek! Failed to decode " + url);
+					}
+					return bmp;
+				}
             }
         } catch (IOException e) {
-            Log.w(TAG, "I/O error while retrieving bitmap from " + url, e);
+            Log.w(TAG, "I/O error while retrieving bitmap from " + urlString, e);
         } catch (IllegalStateException e) {
-            Log.w(TAG, "Incorrect URL: " + url);
+            Log.w(TAG, "Incorrect URL: " + urlString);
         } catch (Exception e) {
-            Log.w(TAG, "Error while retrieving bitmap from " + url, e);
-        } finally {
-            if ((client instanceof AndroidHttpClient)) {
-                ((AndroidHttpClient) client).close();
-            }
+            Log.w(TAG, "Error while retrieving bitmap from " + urlString, e);
         }
         return null;
     }
